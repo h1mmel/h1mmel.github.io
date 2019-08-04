@@ -3,7 +3,7 @@ layout: page
 title: About
 ---
 
-InfoSecurity student@cqup
+InfoSecurity student@cqupt
 
 email: xiaoxiaoxiaotian@gmail.com
 
