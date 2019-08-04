@@ -1,8 +1,8 @@
-title: Hacker-Blog
+title: h1mmel-Blog
 description: "A Jekyll Blog Theme For Hackers"
 author:
-  name: "SomeHacker"
-  email: "someone@somewebsite.somedomain"
+  name: "h1mmel"
+  email: "xiaoxiaoxiaotian@gmail.com"
   url: "https://ashishchaudhary.in/hacker-blog"
 
 baseurl: /
@@ -28,5 +28,5 @@ plugins:
   - jekyll-sitemap
 
 # Custom variables
-owner : "SomeHacker"
+owner : "h1mmel"
 year : "2018"
