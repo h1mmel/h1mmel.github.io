@@ -1,9 +1,9 @@
 title: h1mmel-Blog
-description: "A Blog with Hack Theme"
+description: "A Blog for Recording"
 author:
   name: "h1mmel"
   email: "xiaoxiaoxiaotian@gmail.com"
-  url: "https://ashishchaudhary.in/hacker-blog"
+  url: "https://h1mmel.github.io"
 
 baseurl: /
 
