@@ -30,4 +30,4 @@ plugins:
 # Custom variables
 owner : "h1mmel"
 year : "2019"
-show_downloads: ["true" or "false" to indicate whether to provide a download URL]
+show_downloads: ["true"]
