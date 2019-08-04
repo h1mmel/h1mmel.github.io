@@ -3,4 +3,7 @@ layout: page
 title: About
 ---
 
-InfoSecurity student@cqupt
+InfoSecurity student@cqup
+
+email: xiaoxiaoxiaotian@gmail.com
+telegram: https://t.me/himmelsky
