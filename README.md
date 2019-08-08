@@ -1,109 +1,57 @@
-# The Hacker-Blog theme
+# Soot Spirits Jekyll Theme
 
-*Hacker-Blog is a minimalistic, responsive jekyll theme built for hackers. It is based on the [hacker theme](https://github.com/pages-themes/hacker) for project pages.*
+Soot Spirits is a responsive mobile ready lightweight two column Jekyll theme made with Bulma CSS. It is a great template for simple personal blogs with focus on typography.
 
-Demo: [https://ashishchaudhary.in/hacker-blog](https://ashishchaudhary.in/hacker-blog)
+![mobile](tmp/mobile.png)
 
-### Included
+The text is made beautiful with combination of [League Gothic](https://www.fontsquirrel.com/fonts/league-gothic), [Roboto](https://fonts.google.com/specimen/Roboto) and [Open Sans](https://fonts.google.com/specimen/Open+Sans). Now who doesn't love them.
 
-1. Pagination
-2. SEO tags
-3. Archive Page
-4. RSS
-5. Sitemap 
+![text](tmp/langslide.gif)
 
-## Usage
+### Demo
+[sootspirits.github.io](https://sootspirits.github.io)
 
-1. Fork and Clone this repository
-2. Customize your blog
-3. Add a new post in `_posts/` directory with proper name format (as shown in placeholder posts)
-4. Commit and push to master 
+### Some Good Features
 
-## Local Build
+- Fully mobile ready
+- Beautiful typography
+- Two column layout suitable for a wide range of blogging habits
+- Fully customisable theme including the 'hello' text, quotes, nav items and sidebar widgets
 
-If you want to see the changes before pushing the blog to Github, do a local build.
+### Screenshots
+##### Deskop browser (full width)
+![fullwidth](tmp/fullwidth.png)
 
-1. [`gem install jekyll`](https://jekyllrb.com/docs/installation/#install-with-rubygems)
-2. `gem install jekyll-seo-tag`
-3. (`cd` to the blog directory, then:) `jekyll serve --watch --port 8000`
-4. Go to `http://0.0.0.0:8000/` in your web browser.
+##### Tablet browser (iPad)
+![tab](tmp/ipad.png)
 
-*Note: In case you have set a `baseurl` different than `/` in `_config.yml`, go to `http://0.0.0.0:8000/BASEURL/` instead.*
+##### Mobile browser (320px and greater)
+![mobile](tmp/mobile.png)
 
-### Local build using docker
+##### Hamburger menu toggle
+![hamburger](tmp/hamburger.gif)
 
-```bash
-docker run --rm -p 8000:8000 \
-  --volume="LOCATION_OF_YOUR_JEKYLL_BLOG:/srv/jekyll" \
-  -it tocttou/jekyll:3.5 \
-  jekyll serve --watch --port 8000
-```
+##### Basic navigation and footer
+![navi](tmp/navi.gif)
 
-Replace `LOCATION_OF_YOUR_JEKYLL_BLOG` with the full path of your blog repository. Visit `http://localhost:8000/` to access the blog.
+### Theme Usage
 
-*Note: In case you have set a `baseurl` different than `/` in `_config.yml`, go to `http://0.0.0.0:8000/BASEURL/` instead.*
+- [Get started](https://jekyllrb.com/docs/installation/) with having the necessary tools set up
+- Download the zip of this project or simple clone it
+- Delete the ```tmp/``` directory and any sample ```_posts```
+- Customize the variables in ```_config.yml``` file such that it reflects your information. Similarly, change the disqus username (or remove it altogether).
+- Replace footer links in the ```_layouts/default.html``` file with yours.
+- Replace the ```site:example.com``` in ```assets/js/custom.js``` with your site's address.
 
-## Customizing
+### Credits
+- [Codepen hi-im-si](http://codepen.io/hi-im-si/pen/DHoup) for the header 'hello' typewriter text
+- [Bulma CSS](bulma.io/)
+- [Jekyll](https://jekyllrb.com)
+- [Github](https://github.com)
 
-### Configuration variables
+### Licence
+MIT
 
-Edit the `_config.yml` file and set the following variables:
 
-```yml
-title: [The title of your blog]
-description: [A short description of your blog's purpose]
-author:
-  name: [Your name]
-  email: [Your email address]
-  url: [URL of your website]
-
-baseurl: [The base url for this blog.]
-
-paginate: [Number of posts in one paginated section (default: 3)]
-owner: [Your name]
-year: [Current Year]
-```
-
-*Note: All links in the site are prepended with `baseurl`. Default `baseurl` is `/`. Any other baseurl can be setup like `baseurl: /hacker-blog`, which makes the site available at `http://domain.name/hacker-blog`.*
-
-Additionally, you may choose to set the following optional variables:
-
-```yml
-google_analytics: [Your Google Analytics tracking ID]
-```
-
-### About Page
-
-Edit `about.md`
-
-### Layout
-
-If you would like to modify the site style:
-
-**HTML**
-
-Footer: Edit `_includes/footer.html`
-
-Header: Edit `_includes/header.html`
-
-Links in the header: Edit `_includes/links.html`
-
-Meta tags, blog title display, and additional CSS: Edit `_includes/head.html`
-
-Index page layout: Edit `_layouts/default.html`
-
-Post layout: Edit `_layouts/post.html`
-
-**CSS**
-
-Site wide CSS: Edit `_sass/base.scss`
-
-Custom CSS: Make `_sass/custom.scss` and use it. Then add `@import "custom";` to `css/main.scss`
-
-**404 page**
-
-Edit `404.md`
-
-## License
-
-CC0 1.0 Universal
+### What's up with the name?
+I was watching [My Neighbour Totoro](https://en.wikipedia.org/wiki/Susuwatari) while developing :-)
