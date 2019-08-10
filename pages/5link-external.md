@@ -6,4 +6,4 @@ icon: octicon-link-external
 
 ---
 
-### [github](https://github/h1mmel)
+### [github](https://github.com/h1mmel)
