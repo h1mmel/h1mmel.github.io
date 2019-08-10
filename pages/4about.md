@@ -5,5 +5,5 @@ permalink: /about/
 icon: octicon-heart
 ---
 
-email: {{site.email}}
-telegram: https://t.me/himmelsky
+<p>email: {{site.email}}
+telegram: https://t.me/himmelsky</p>
