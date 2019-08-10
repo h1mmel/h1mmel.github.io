@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Leet Code C++ 1~25
-tags: C++ computer
+tags: C++ CS
 categories: C++ 
 ---
 
