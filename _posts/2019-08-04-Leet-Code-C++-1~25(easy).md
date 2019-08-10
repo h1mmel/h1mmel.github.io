@@ -1,9 +1,4 @@
----
-layout: post
-title: 为什么要用补码表示负数
-tags: 补码 computer
-categories: common
----
+
 
 ### 1、两数之和
 
