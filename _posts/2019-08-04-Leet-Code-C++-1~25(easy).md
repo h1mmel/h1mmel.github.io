@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Leet Code C++ 1~25
+title: Leet Code C++ 1~25 (easy)
 tags: C++ CS
 categories: C++ 
 ---
