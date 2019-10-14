@@ -457,7 +457,7 @@ c++ code
 
 ```c++
 /**
- * 递归解法
+ * 递归法
  * Definition for singly-linked list.
  * struct ListNode {
  *     int val;
@@ -527,3 +527,6 @@ public:
 };
 ```
 
+
+
+last edited at 2019/10/14
