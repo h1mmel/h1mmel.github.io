@@ -281,3 +281,68 @@ public:
 解释: 输入不存在公共前缀。
 ```
 
+c++ code
+
+```c++
+class Solution {
+public:
+    string longestCommonPrefix(vector<string>& strs) {
+        int i = 0, j = 0;
+		string prefix;
+
+        if (strs.size() == 0)
+            return "";
+
+        if (strs.size() == 1)
+        	return strs[0];
+        
+		sort(strs.begin(), strs.end());
+		
+		for (i = 0; i < strs[0].size(); ++i)
+		{
+			prefix += strs[0][i];
+			for (j = 0; j < strs[0].size(); ++j)
+			{
+				if (prefix == strs[strs.size() - 1].substr(0, i + 1))
+					continue;
+				else
+					return prefix.substr(0, prefix.size() - 1);
+			}
+		}
+		return prefix;
+    }
+};
+```
+
+高效代码
+
+```c++
+class Solution { 
+public: 
+	string longestCommonPrefix(vector<string>& strs) 
+	{ 
+		string res; 
+		int n = strs.size();
+
+		if (n == 0) 
+			return res;
+		else if (n == 1) 
+			return strs[0];
+
+		char c;
+
+		for(int i = 0; ; i++)
+		{ 
+			c = strs[0][i]; 
+			for(int j = 1; j < n; j++)
+			{ 
+				if(c == '\0' || strs[j][i] != c) 
+					return res; 
+			} 
+			res += c; 
+		} 
+		return res; 
+	} 
+};
+```
+
