@@ -400,6 +400,62 @@ public:
 c++ code
 
 ```c++
+class Solution {
+public:
+    bool isValid(string s) {
+        int i, length = s.size();
+        string lstr = "";
+        
+        if (s.empty())
+            return true;
+
+        for (i = 0; i < length; i++)
+        {
+            if (s[i] == '(' || s[i] == '[' || s[i] == '{')
+            {
+                lstr += s[i];
+            }
+            else
+            {
+                if (s[i] == ')' && lstr[lstr.size() - 1] == '(')
+                    lstr.pop_back();
+                else if (s[i] == ']' && lstr[lstr.size() - 1] == '[')
+                    lstr.pop_back();
+                else if (s[i] == '}' && lstr[lstr.size() - 1] == '{')
+                    lstr.pop_back();
+                else
+                	lstr += s[i];
+            }
+        }
+        
+        if (lstr.empty())
+            return true;
+        else
+            return false;
+    }
+};
+```
+
+<br/>
+
+
+
+### 21、合并两个有序链表
+
+题目描述
+
+> 将两个有序链表合并为一个新的有序链表并返回。新链表是通过拼接给定的两个链表的所有节点组成的。
+
+**示例：**
+
+```
+输入：1->2->4, 1->3->4
+输出：1->1->2->3->4->4
+```
+
+c++ code
+
+```c++
 
 ```
 
