@@ -190,3 +190,67 @@ c++ code
      因此返回 INT_MIN (−231) 。
 ```
 
+```c++
+class Solution {
+public:
+    int myAtoi(string str) {
+        int i = 0, flag = 0;
+        long ret = 0;
+        
+        if (str.empty())
+            return 0;
+        
+        for (i = 0; i < str.size(); i++)
+        {         
+            if (str[i] == ' ' || str[i] == '\t')
+                continue;
+            
+            if (str[i] == ' ' || str[i] == '\t')
+                continue;
+            
+            if ((str[i] == '+' || str[i] == '-') && !isdigit(str[i + 1]))
+                return ret;
+            
+            if (str[i] == '+')
+                flag = 0;
+            else if (str[i] == '-')
+                flag = 1;
+            else if (isdigit(str[i]) && isdigit(str[i + 1]))
+            {
+                if (!flag)
+                {
+                    ret = 10 * ret + (str[i] - 48);
+                    if (ret >= INT_MAX)
+                        return INT_MAX;
+                }
+                else
+                {
+                    ret = 10 * ret - (str[i] - 48);
+                    if (ret <= INT_MIN)
+                        return INT_MIN;
+                }
+            }
+            else if (isdigit(str[i]) && !isdigit(str[i + 1]))
+            {
+                if (!flag)
+                {
+                    ret = 10 * ret + (str[i] - 48);
+                    if (ret >= INT_MAX)
+                        return INT_MAX;
+                }
+                else
+                {
+                    ret = 10 * ret - (str[i] - 48);
+                    if (ret <= INT_MIN)
+                        return INT_MIN;
+                }
+                return ret;
+            }
+            else
+                return ret;
+        }
+        return ret;
+    }
+};
+```
+
