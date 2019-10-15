@@ -190,6 +190,8 @@ c++ code
      因此返回 INT_MIN (−231) 。
 ```
 
+c++ code
+
 ```c++
 class Solution {
 public:
@@ -254,3 +256,4 @@ public:
 };
 ```
 
+<br/>
