@@ -196,8 +196,7 @@ c++ code
 class Solution {
 public:
     int myAtoi(string str) {
-        int i = 0, flag = 0;
-        long ret = 0;
+        int i = 0, ret = 0, flag = 0;
         
         if (str.empty())
             return 0;
@@ -222,14 +221,32 @@ public:
                 if (!flag)
                 {
                     ret = 10 * ret + (str[i] - 48);
-                    if (ret >= INT_MAX)
+                    if (ret > INT_MAX / 10)
                         return INT_MAX;
+                    else if (ret == (INT_MAX / 10) && (str[i + 1] - 48) > (INT_MAX % 10))
+                    {
+                        return INT_MAX;
+                    }
+                    else if (ret == (INT_MAX / 10) && (str[i + 1] - 48) <= (INT_MAX % 10))
+                    {
+                        return 10 * ret + (str[i + 1] - 48);
+                    }                        
                 }
                 else
                 {
                     ret = 10 * ret - (str[i] - 48);
-                    if (ret <= INT_MIN)
+                    if (ret < INT_MIN / 10)
+                    {
                         return INT_MIN;
+                    }
+                    else if (ret == INT_MIN / 10 && (str[i + 1] - 48) > -(INT_MIN % 10))
+                    {
+                        return INT_MIN;
+                    }
+                    else if (ret == INT_MIN / 10 && (str[i + 1] - 48) <= -(INT_MIN % 10))
+                    {
+                        return 10 * ret - (str[i + 1] - 48);
+                    }
                 }
             }
             else if (isdigit(str[i]) && !isdigit(str[i + 1]))
@@ -237,14 +254,10 @@ public:
                 if (!flag)
                 {
                     ret = 10 * ret + (str[i] - 48);
-                    if (ret >= INT_MAX)
-                        return INT_MAX;
                 }
                 else
                 {
                     ret = 10 * ret - (str[i] - 48);
-                    if (ret <= INT_MIN)
-                        return INT_MIN;
                 }
                 return ret;
             }
