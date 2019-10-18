@@ -120,7 +120,34 @@ public:
 c++ code
 
 ```
-
+class Solution {
+public:
+    int lengthOfLongestSubstring(string s) {
+        int n = s.length();
+        vector<char> str;
+        int mlen = 0;
+        
+        for(int i = 0; i < n; i++){
+            char c = s[i];
+            for(int m = str.size() - 1; m >= 0; m--)
+            {
+                if(c == str[m])
+                {
+                    if(mlen < str.size())
+                        mlen = str.size();
+                    str.erase(str.begin(), str.begin() + m + 1);
+                    break;
+                }
+            }
+            str.push_back(c);
+        }
+        
+        if(mlen < str.size())
+            mlen = str.size();
+        
+        return mlen;
+    }     
+};
 ```
 
 <br/>
