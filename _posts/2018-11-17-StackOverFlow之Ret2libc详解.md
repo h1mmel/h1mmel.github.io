@@ -49,10 +49,17 @@ categories: stackoverflow
 
 编写两个模块，一个是程序自身的代码模块，另一个是共享对象模块。以此来学习动态链接的程序是如何进行模块内、模块间的函数调用和数据访问，共享文件如下：
 
-```
+```c
 got_extern.c
 
-#include <stdio.h>int b;void test(){	printf("test\n");}
+#include <stdio.h>
+
+int b;
+
+void test()
+{
+	printf("test\n");
+}
 ```
 
 编译成32位共享对象文件：
@@ -71,9 +78,28 @@ gcc got_extern.c -fPIC -shared -m32 -o got_extern.so
 
 编写的代码模块：
 
-```
+```c
 got.c
-#include <stdio.h>static int a;extern int b;extern void test();int fun(){	a = 1;	b = 2;}int main(int argc, char const *argv[]){	fun();	test();	printf("hey!");	return 0;}
+#include <stdio.h>
+
+static int a;
+extern int b;
+extern void test();
+
+int fun()
+{
+	a = 1;
+	b = 2;
+}
+
+int main(int argc, char const *argv[])
+{
+	fun();
+	test();
+	printf("hey!");
+
+	return 0;
+}
 ```
 
 和共享模块一同编译：
@@ -84,8 +110,44 @@ gcc got.c ./got_extern.so -m32 -o got
 
 用 objdump 查看反汇编代码 objdump -D -Mintel got：
 
-```
-000011b9 <fun>:    11b9:	55                   	push   ebp    11ba:	89 e5                	mov    ebp,esp    11bc:	e8 63 00 00 00       	call   1224 <__x86.get_pc_thunk.ax>    11c1:	05 3f 2e 00 00       	add    eax,0x2e3f    11c6:	c7 80 24 00 00 00 01 	mov    DWORD PTR [eax+0x24],0x1    11cd:	00 00 00     11d0:	8b 80 ec ff ff ff    	mov    eax,DWORD PTR [eax-0x14]    11d6:	c7 00 02 00 00 00    	mov    DWORD PTR [eax],0x2    11dc:	90                   	nop    11dd:	5d                   	pop    ebp    11de:	c3                   	ret    000011df <main>:    11df:	8d 4c 24 04          	lea    ecx,[esp+0x4]    11e3:	83 e4 f0             	and    esp,0xfffffff0    11e6:	ff 71 fc             	push   DWORD PTR [ecx-0x4]    11e9:	55                   	push   ebp    11ea:	89 e5                	mov    ebp,esp    11ec:	53                   	push   ebx    11ed:	51                   	push   ecx    11ee:	e8 cd fe ff ff       	call   10c0 <__x86.get_pc_thunk.bx>    11f3:	81 c3 0d 2e 00 00    	add    ebx,0x2e0d    11f9:	e8 bb ff ff ff       	call   11b9 <fun>    11fe:	e8 5d fe ff ff       	call   1060 <test@plt>    1203:	83 ec 0c             	sub    esp,0xc    1206:	8d 83 08 e0 ff ff    	lea    eax,[ebx-0x1ff8]    120c:	50                   	push   eax    120d:	e8 2e fe ff ff       	call   1040 <printf@plt>    1212:	83 c4 10             	add    esp,0x10    1215:	b8 00 00 00 00       	mov    eax,0x0    121a:	8d 65 f8             	lea    esp,[ebp-0x8]    121d:	59                   	pop    ecx    121e:	5b                   	pop    ebx    121f:	5d                   	pop    ebp    1220:	8d 61 fc             	lea    esp,[ecx-0x4]    1223:	c3                   	ret    
+```assembly
+000011b9 <fun>:
+    11b9:	55                   	push   ebp
+    11ba:	89 e5                	mov    ebp,esp
+    11bc:	e8 63 00 00 00       	call   1224 <__x86.get_pc_thunk.ax>
+    11c1:	05 3f 2e 00 00       	add    eax,0x2e3f
+    11c6:	c7 80 24 00 00 00 01 	mov    DWORD PTR [eax+0x24],0x1
+    11cd:	00 00 00 
+    11d0:	8b 80 ec ff ff ff    	mov    eax,DWORD PTR [eax-0x14]
+    11d6:	c7 00 02 00 00 00    	mov    DWORD PTR [eax],0x2
+    11dc:	90                   	nop
+    11dd:	5d                   	pop    ebp
+    11de:	c3                   	ret    
+
+000011df <main>:
+    11df:	8d 4c 24 04          	lea    ecx,[esp+0x4]
+    11e3:	83 e4 f0             	and    esp,0xfffffff0
+    11e6:	ff 71 fc             	push   DWORD PTR [ecx-0x4]
+    11e9:	55                   	push   ebp
+    11ea:	89 e5                	mov    ebp,esp
+    11ec:	53                   	push   ebx
+    11ed:	51                   	push   ecx
+    11ee:	e8 cd fe ff ff       	call   10c0 <__x86.get_pc_thunk.bx>
+    11f3:	81 c3 0d 2e 00 00    	add    ebx,0x2e0d
+    11f9:	e8 bb ff ff ff       	call   11b9 <fun>
+    11fe:	e8 5d fe ff ff       	call   1060 <test@plt>
+    1203:	83 ec 0c             	sub    esp,0xc
+    1206:	8d 83 08 e0 ff ff    	lea    eax,[ebx-0x1ff8]
+    120c:	50                   	push   eax
+    120d:	e8 2e fe ff ff       	call   1040 <printf@plt>
+    1212:	83 c4 10             	add    esp,0x10
+    1215:	b8 00 00 00 00       	mov    eax,0x0
+    121a:	8d 65 f8             	lea    esp,[ebp-0x8]
+    121d:	59                   	pop    ecx
+    121e:	5b                   	pop    ebx
+    121f:	5d                   	pop    ebp
+    1220:	8d 61 fc             	lea    esp,[ecx-0x4]
+    1223:	c3                   	ret    
 ```
 
 ### 1、模块内部调用
@@ -104,14 +166,10 @@ ELF 文件是由很多很多的 **段(segment)** 所组成，常见的就如 .te
 
 观察 fun() 函数中给静态变量 a 赋值的指令：
 
-```
-    11bc:	e8 63 00 00 00       	call   1224 <__x86.get_pc_thunk.ax>    11c1:	05 3f 2e 00 00       	add    eax,0x2e3f    11c6:	c7 80 24 00 00 00 01 	mov    DWORD PTR [eax+0x24],0x1    11cd:	00 00 00 
-```
-
-从上面的指令中可以看出，它先调用了 __x86.get_pc_thunk.ax() 函数：
-
-```
-00001224 <__x86.get_pc_thunk.ax>:    1224:	8b 04 24             	mov    eax,DWORD PTR [esp]    1227:	c3                   	ret    
+```assembly
+11bc:	e8 63 00 00 00       	call   1224 <__x86.get_pc_thunk.ax>
+11c1:	05 3f 2e 00 00       	add    eax,0x2e3f
+11c6:	c7 80 24 00 00 00 01 	mov    DWORD PTR [eax+0x24],0x1
+11cd:	00 00 00 
 ```
 
-这个函数的作用就是把返回地址的值放到 eax 寄存器中，也就是把0x000011c1保存到eax中，然后再加上 0x2e3f ，最后再加上 0×24 。即 0x000011c1 + 0x2e3f + 0×24 = 0×4024，这个值就是相对于模块加载基址的值。通过这样就能访问到模块内部的数据。
