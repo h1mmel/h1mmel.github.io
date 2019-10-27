@@ -176,7 +176,7 @@ main()函数中调用fun()函数并传值a、b汇编指令对应如下:
 
 从上面可以看出函数参数入栈的顺序和我们正常C语言的调用顺序是反着的即**参数逆序入栈。**这里还有一点就是在调用一个函数前都是先压入参数(没有参数就不用)然后再调用函数汇编表现为 push xxx ; push xxx; push xxx; call xxx的形式。当然这根据不同的**调用约定**有关参考 [这里](http://www.cnblogs.com/clover-toeic/p/3755401.html)。什么是调用约定这关系到另外一个问题当一个函数被调用完时它之前所开辟的栈空间到底怎么处理有两种方式第一种就是掉用者清理这种方式成为 **cdecl 调用约定**此约定也是 c/c++ 缺省的调用方式第二种就是被调用者清理栈空间这种称为 **stdcall 调用约定** windows程序开发时大多使用这种调用方式。**stdcall** 调用约定还有个升级版 **fastcall** 调用约定与 **stdcall** **调用约定** 不同的是如果被调用者只有至多两个参数则通过寄存器传参超过两个参数的部分则还是以栈的形式传参。不管他们哪种调用约定参数都是以逆序的方式入栈。接下来就是图解栈的调用
 
-![stackframe](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stackfram.png)
+![stackframe](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stackframe.png)
 
 被忽略掉的五条指令中前两条不用管后面三条就是
 
