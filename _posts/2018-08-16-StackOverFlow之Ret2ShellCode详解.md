@@ -11,6 +11,8 @@ categories: stackoverflow
 
 **学习时常需要复习巩固仅以此文作为记录我的pwn学习历程的开篇吧。CTF中pwn题以难入门难提升而著称需要掌握的知识全面而且繁杂，学习时切记不要急躁。保持一个良好的心态对于pwn学习是很重要的。本文记录 栈溢出 中的简单 ret2shellcode 利用和最基础的栈知识，用例为 [pwnable.tw](https://pwnable.tw/) 中的第一道题 start 。**
 
+<br/>
+
 ## **0×01 环境准备**
 
 [kali linux 2018.2](https://www.kali.org/downloads/) 用kali的原因是里面有很多的工具可以很节省时间
@@ -18,6 +20,8 @@ categories: stackoverflow
 [pwndbg](https://github.com/pwndbg/pwndbg) 是 gdb 的一个插件类似的插件还有[peda](https://github.com/longld/peda)[pwngdb](https://github.com/scwuaptx/Pwngdb) 插件的功能大同小异不用纠结。用插件的原因是原生的 gdb 没有高亮显示且观察寄存器、堆栈等必要信息不方便 。gdb 已经在 kali 中内置好了不需要自行安装
 
 objdump 也是可以快速查看二进制文件信息的工具可以很方便的获取二进制文件的很多信息诸如反汇编调用的函数信息等
+
+<br/>
 
 ## **0×02 必要工具安装**
 
@@ -35,6 +39,8 @@ gdb 反汇编语法设置默认为 AT&T 语法改为 Intel 语法
 
 > set disassembly-flavor intel > ~/.gdbinit
 
+<br/>
+
 ## **0×03 名词解释**
 
 > **exp**  通常指漏洞利用的脚本
@@ -42,6 +48,8 @@ gdb 反汇编语法设置默认为 AT&T 语法改为 Intel 语法
 > **shellcode** 指能打开shell的一段代码通常用汇编编写
 >
 > **payload (有效载荷)** 漏洞利用过程中需要构造的攻击代码**shellcode** 属于 payload 的一部分
+
+<br/>
 
 ## **0×04 栈相关知识和汇编指令**
 
