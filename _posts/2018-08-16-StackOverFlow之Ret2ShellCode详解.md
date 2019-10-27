@@ -1,13 +1,11 @@
 ---
 layout: post
 title: StackOverFlow 之 Ret2ShellCode 详解
-tags: bin CS vul stackoverflow
-categories: stackoverflow 
+tags: bin vul stackoverflow CS 
+categories: stackoverflow
 ---
 
-***\*本文作者：h1mmel，本文属 FreeBuf 原创奖励计划，未经许可禁止转载。**
-
-
+首发于 **freebuf**  [StackOverFlow 之 Ret2ShellCode 详解](https://www.freebuf.com/vuls/179724.html)
 
 ## **0×00 序言** 
 
