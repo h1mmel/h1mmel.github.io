@@ -173,3 +173,89 @@ ELF 文件是由很多很多的 **段(segment)** 所组成，常见的就如 .te
 11cd:	00 00 00 
 ```
 
+ 从上面的指令中可以看出，它先调用了 __x86.get_pc_thunk.ax() 函数： 
+
+```assembly
+00001224 <__x86.get_pc_thunk.ax>:
+    1224:	8b 04 24             	mov    eax,DWORD PTR [esp]
+    1227:	c3                   	ret    
+```
+
+这个函数的作用就是把返回地址的值放到 eax 寄存器中，也就是把0x000011c1保存到eax中，然后再加上 0x2e3f ，最后再加上 0×24 。即 0x000011c1 + 0x2e3f + 0×24 = 0×4024，这个值就是相对于模块加载基址的值。通过这样就能访问到模块内部的数据。
+
+![模块内部数据访问](../images/2018-11-17-Ret2libc/inner_modular-data-access.png)
+
+### 3、模块间数据访问
+
+变量 b 被定义在其他模块中，其地址需要在程序装载时才能够确定。利用到前面的代码地址无关的思想，把地址相关的部分放入数据段中，然而这里的变量 b 的地址与其自身所在的模块装载的地址有关。解决：ELF 中在数据段里面建立了一个**指向这些变量的指针数组**，也就是我们所说的 **GOT 表(Global offset Table， 全局偏移表 ）**，它的功能就是当代码需要引用全局变量时，可以通过 GOT 表间接引用。
+
+查看反汇编代码中是如何访问变量 b 的：
+
+```assembly
+  11bc:	e8 63 00 00 00       	call   1224 <__x86.get_pc_thunk.ax>
+  11c1:	05 3f 2e 00 00       	add    eax,0x2e3f
+  11c6:	c7 80 24 00 00 00 01 	mov    DWORD PTR [eax+0x24],0x1
+  11cd:	00 00 00 
+  11d0:	8b 80 ec ff ff ff    	mov    eax,DWORD PTR [eax-0x14]
+  11d6:	c7 00 02 00 00 00    	mov    DWORD PTR [eax],0x2
+```
+
+计算变量 b 在 GOT 表中的位置，0x11c1 + 0x2e3f – 0×14 = 0x3fec ，查看 GOT 表的位置。
+
+命令 objdump -h got ，查看ELF文件中的节头内容：
+
+```assembly
+ 21 .got          00000018  00003fe8  00003fe8  00002fe8  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+```
+
+ 这里可以看到 .got 在文件中的偏移是 0x00003fe8，现在来看在动态连接时需要重定位的项，使用 objdump -R got 命令 
+
+```assembly
+00003fec R_386_GLOB_DAT    b
+```
+
+ 可以看到变量b的地址需要重定位，位于0x00003fec，在GOT表中的偏移就是4，也就是第二项(每四个字节为一项)，这个值正好对应之前通过指令计算出来的偏移值。 
+
+### 4、模块间函数调用
+
+模块间函数调用用到了延迟绑定，都是函数名@plt的形式，后面再说
+
+```assembly
+11fe:	e8 5d fe ff ff       	call   1060 <test@plt>
+```
+
+<br/>
+
+## 0×04 延迟绑定(Lazy Binding) && PLT(Procedure Linkage Table)
+
+因为 **动态链接** 的程序是在运行时需要对全局和静态数据访问进行GOT定位，然后间接寻址。同样，对于模块间的调用也需要GOT定位，再才间接跳转，这么做势必会影响到程序的运行速度。而且程序在运行时很大一部分函数都可能用不到，于是ELF采用了当函数第一次使用时才进行绑定的思想，也就是我们所说的 **延迟绑定**。ELF实现 **延迟绑定** 是通过 **PLT** ，原先 **GOT** 中存放着全局变量和函数调用，现在把他拆成另个部分 .got 和 .got.plt，用 .got 存放着全局变量引用，用 .got.plt 存放着函数引用。查看 test@plt 代码，用 objdump -Mintel -d -j .plt got
+
+>  -Mintel 选项指定 intel 汇编语法
+> -d 选项展示可执行文件节的汇编形式
+> -j 选项后面跟上节名，指定节 
+
+```assembly
+00001060 <test@plt>:
+    1060:	ff a3 14 00 00 00    	jmp    DWORD PTR [ebx+0x14]
+    1066:	68 10 00 00 00       	push   0x10
+    106b:	e9 c0 ff ff ff       	jmp    1030 <.plt>
+```
+
+ 查看 main()函数 中调用 test@plt 的反汇编代码 
+
+```assembly
+    11ee:	e8 cd fe ff ff       	call   10c0 <__x86.get_pc_thunk.bx>
+    11f3:	81 c3 0d 2e 00 00    	add    ebx,0x2e0d
+    11f9:	e8 bb ff ff ff       	call   11b9 <fun>
+    11fe:	e8 5d fe ff ff       	call   1060 <test@plt>
+```
+
+ __x86.gett_pc_thunk.bx 函数与之前的 __x86.get_pc_thunk.ax 功能一样 ，得出 ebx = 0x11f3 + 0x2e0d = 0×4000 ，ebx + 0×14 = 0×4014 。首先 jmp 指令，跳转到 0×4014 这个地址，这个地址在 .got.plt 节中 ： 
+
+![.got.plt](../images/2018-11-17-Ret2libc/.got.plt.png)
+
+ 也就是当程序需要调用到其他模块中的函数时例如 fun() ，就去访问保存在 .got.plt 中的 fun@plt 。这里有两种情况，第一种就是第一次使用这个函数，这个地方就存放着第二条指令的地址，也就相当于什么都不做。用 objdump -d -s got -j .got.plt 命令查看节中的内容 
+
+>  -s 参数显示指定节的所有内容 
+
