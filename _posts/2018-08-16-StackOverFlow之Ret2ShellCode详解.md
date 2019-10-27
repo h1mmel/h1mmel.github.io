@@ -89,5 +89,7 @@ gdb 反汇编语法设置默认为 AT&T 语法改为 Intel 语法
 
 这里说的栈与数据结构的栈略微有些区别这里的栈是指程序在运行时在内存中开辟的一块区域称为运行时栈数据存储规则同样为 FILO(First in Last out 先进后出)。操作简单只有push压栈和 pop 弹栈。例如push eax代表将 eax 寄存器中的值压入栈顶寄存器 -> 内存pop eax代表将栈顶的值取出放到 eax 寄存器中 内存 -> 寄存器。
 
+![push_pop](/images/2018-08-16-StackOverFlow之Ret2ShellCode详解/push_pop.png)
+
 
 
