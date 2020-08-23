@@ -89,7 +89,7 @@ gdb 反汇编语法设置默认为 AT&T 语法改为 Intel 语法
 
 这里说的栈与数据结构的栈略微有些区别这里的栈是指程序在运行时在内存中开辟的一块区域称为运行时栈数据存储规则同样为 FILO(First in Last out 先进后出)。操作简单只有push压栈和 pop 弹栈。例如push eax代表将 eax 寄存器中的值压入栈顶寄存器 -> 内存pop eax代表将栈顶的值取出放到 eax 寄存器中 内存 -> 寄存器。
 
-![push_pop](https://github.com/h1mmel/h1mmel.github.io/blob/master/images/2018-08-16-Ret2ShellCode/push_pop.png)
+![push_pop](../images/2018-08-16-Ret2ShellCode/push_pop.png)
 
  上图表示 push 和 pop 操作栈中数值的变化**注意栈的生长方向是高地址到低地址** push eax 第一步将 esp – 4 中使 esp 重新指向栈顶 一个单位栈空间占据4字节第二步将 eax 中的值放入栈顶同理 push ebx 第一步使 esp 继续减 4 中使 esp 指向新的栈顶 第二步将 ebx 中的值放入栈顶 。pop ebx 第一步将栈顶的值传入 ebx 中第二步使 esp + 4 使其指向新的栈顶。push 和 pop 操作动作相反。 
 
@@ -176,7 +176,7 @@ main()函数中调用fun()函数并传值a、b汇编指令对应如下:
 
 从上面可以看出函数参数入栈的顺序和我们正常C语言的调用顺序是反着的即**参数逆序入栈。**这里还有一点就是在调用一个函数前都是先压入参数(没有参数就不用)然后再调用函数汇编表现为 push xxx ; push xxx; push xxx; call xxx的形式。当然这根据不同的**调用约定**有关参考 [这里](http://www.cnblogs.com/clover-toeic/p/3755401.html)。什么是调用约定这关系到另外一个问题当一个函数被调用完时它之前所开辟的栈空间到底怎么处理有两种方式第一种就是掉用者清理这种方式成为 **cdecl 调用约定**此约定也是 c/c++ 缺省的调用方式第二种就是被调用者清理栈空间这种称为 **stdcall 调用约定** windows程序开发时大多使用这种调用方式。**stdcall** 调用约定还有个升级版 **fastcall** 调用约定与 **stdcall** **调用约定** 不同的是如果被调用者只有至多两个参数则通过寄存器传参超过两个参数的部分则还是以栈的形式传参。不管他们哪种调用约定参数都是以逆序的方式入栈。接下来就是图解栈的调用
 
-![stackframe](https://h1mmel.github.io/stackoverflow/images/2018-08-16-Ret2ShellCode/stackframe.png)
+![stackframe](../images/2018-08-16-Ret2ShellCode/stackframe.png)
 
 被忽略掉的五条指令中前两条不用管后面三条就是
 
